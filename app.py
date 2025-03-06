@@ -1,56 +1,57 @@
 from flask import Flask, jsonify
 import requests
+from bs4 import BeautifulSoup
 import random
 import os
 
 app = Flask(__name__)
 
-# ✅ List of free proxies (Update this frequently)
-PROXIES = [
-    "http://52.73.224.54:3128",
-    "http://204.236.137.68:80",
-    "http://160.20.55.235:8080",
-    "http://3.90.100.12:80",
-    "http://34.244.90.35:80",
-]
+# Function to scrape fresh proxies from SSL Proxies website
+def fetch_proxies():
+    url = "https://www.sslproxies.org/"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    
+    proxies = []
+    for row in soup.select("table tbody tr")[:10]:  # Get top 10 proxies
+        tds = row.find_all("td")
+        proxy = f"http://{tds[0].text}:{tds[1].text}"  # IP:PORT format
+        proxies.append(proxy)
 
+    return proxies if proxies else ["http://52.73.224.54:3128"]  # Fallback proxy
+
+# Function to get a random proxy from the scraped list
 def get_random_proxy():
-    """Pick a random proxy from the list"""
-    return random.choice(PROXIES)
+    return random.choice(fetch_proxies())
 
+# Default route to check if API is running
+@app.route("/")
+def home():
+    return jsonify({"message": "NBA API is running with proxy rotation!"})
+
+# NBA Player Stats Route
+@app.route("/player_stats")
 def get_nba_player_stats():
-    """Fetch NBA player stats with rotating proxies"""
     url = "https://stats.nba.com/stats/playergamelogs"
     params = {
         "Season": "2023-24",
-        "PlayerID": "2544",  # Example: LeBron James' Player ID
+        "PlayerID": "2544",
     }
 
-    for attempt in range(len(PROXIES)):  # Try different proxies
+    for attempt in range(5):  # Try 5 different proxies
         proxy = get_random_proxy()
         proxies = {"http": proxy, "https": proxy}
 
         try:
-            response = requests.get(url, params=params, proxies=proxies, timeout=10)
-            response.raise_for_status()  # Raise error if request fails
-            return response.json()  # Return data if successful
+            response = requests.get(url, params=params, proxies=proxies, timeout=15)
+            response.raise_for_status()
+            return jsonify(response.json())  # Success ✅
 
         except requests.RequestException as e:
-            print(f"Proxy failed ({proxy}): {e}")
+            print(f"Proxy failed ({proxy}): {e}")  # Debugging info
 
-    return {"error": "Failed to fetch player stats", "details": "All proxies failed"}
-
-@app.route("/")
-def home():
-    """Default route to check if API is running"""
-    return jsonify({"message": "NBA API is running!"})
-
-@app.route("/player_stats")
-def player_stats():
-    """Route to fetch NBA player stats"""
-    data = get_nba_player_stats()
-    return jsonify(data)
+    return jsonify({"error": "Failed to fetch player stats", "details": "All proxies failed"})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Ensure PORT is dynamic for Render
+    port = int(os.environ.get("PORT", 10000))  # Ensure dynamic PORT for Render
     app.run(host="0.0.0.0", port=port)
