@@ -3,12 +3,12 @@ from nba_api.stats.endpoints import playergamelogs
 
 app = Flask(__name__)
 
-# Default home route
+# Home Route
 @app.route('/')
 def home():
     return jsonify({"message": "NBA API is running!"})
 
-# API route to get player stats
+# Player Stats Route
 @app.route('/player_stats', methods=['GET'])
 def get_nba_player_stats():
     player_name = request.args.get('player')
@@ -19,11 +19,12 @@ def get_nba_player_stats():
     try:
         logs = playergamelogs.PlayerGameLogs(season_nullable='2023-24')
         stats = logs.get_dict()
-
         return jsonify(stats)
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port, debug=True)
