@@ -13,22 +13,37 @@ def get_latest_game_stats():
             return None
 
         latest_game = game_logs[0]  # Get most recent game
+        headers = logs.get_dict()["resultSets"][0]["headers"]  # Get column names
 
-        # Verify correct indices for each stat
-        return {
-            "player": latest_game[2],      # Player Name
-            "team": latest_game[6],        # Team Name
-            "game_date": latest_game[8],   # Game Date
-            "matchup": latest_game[9],     # Matchup
-            "minutes": latest_game[11],    # Minutes Played
-            "points": latest_game[30],     # ✅ Corrected Points Index
-            "assists": latest_game[25],    # Assists
-            "rebounds": latest_game[23],   # ✅ Corrected Rebounds Index
-            "steals": latest_game[26],     # Steals
-            "blocks": latest_game[27],     # Blocks
-            "turnovers": latest_game[28]   # Turnovers
+        # Find the correct index for each stat dynamically
+        stat_indices = {
+            "PLAYER_NAME": headers.index("PLAYER_NAME"),
+            "TEAM_NAME": headers.index("TEAM_NAME"),
+            "GAME_DATE": headers.index("GAME_DATE"),
+            "MATCHUP": headers.index("MATCHUP"),
+            "MIN": headers.index("MIN"),
+            "PTS": headers.index("PTS"),  # ✅ Ensure correct index for points
+            "AST": headers.index("AST"),
+            "REB": headers.index("REB"),
+            "STL": headers.index("STL"),
+            "BLK": headers.index("BLK"),
+            "TOV": headers.index("TOV")
         }
-    
+
+        return {
+            "player": latest_game[stat_indices["PLAYER_NAME"]],
+            "team": latest_game[stat_indices["TEAM_NAME"]],
+            "game_date": latest_game[stat_indices["GAME_DATE"]],
+            "matchup": latest_game[stat_indices["MATCHUP"]],
+            "minutes": latest_game[stat_indices["MIN"]],
+            "points": latest_game[stat_indices["PTS"]],  # ✅ Now dynamically fetched
+            "assists": latest_game[stat_indices["AST"]],
+            "rebounds": latest_game[stat_indices["REB"]],
+            "steals": latest_game[stat_indices["STL"]],
+            "blocks": latest_game[stat_indices["BLK"]],
+            "turnovers": latest_game[stat_indices["TOV"]]
+        }
+
     except Exception as e:
         return {"error": f"Failed to fetch stats: {str(e)}"}
 
