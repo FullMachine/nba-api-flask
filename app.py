@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-# ✅ Step 1: Function to Scrape Fresh Proxy List
+# ✅ Scrape Fresh Proxies with Error Handling
 def get_fresh_proxies():
     url = "https://sslproxies.org/"
     headers = {
@@ -13,14 +13,13 @@ def get_fresh_proxies():
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
 
         # Find the table containing proxies
         table = soup.find("table", {"class": "table-striped"})
-
         if not table:
-            return None  # No table found
+            return []
 
         proxies = []
         for row in table.find_all("tr")[1:]:
@@ -33,17 +32,14 @@ def get_fresh_proxies():
             proxy = f"{ip}:{port}"
             proxies.append(proxy)
 
-        if not proxies:
-            return None  # No proxies found
-
-        return proxies
+        return proxies if proxies else []
     except Exception as e:
-        return None  # Return None if scraping fails
+        return []  # Return empty list if scraping fails
 
-# ✅ Step 2: Function to Fetch NBA Stats with Proxy Rotation
+# ✅ Fetch NBA Stats with Proxy Rotation
 def fetch_with_proxy(url):
     proxies = get_fresh_proxies()
-
+    
     if not proxies:
         return {"error": "Failed to fetch player stats", "details": "No working proxies available"}
 
@@ -59,19 +55,23 @@ def fetch_with_proxy(url):
 
     return {"error": "Failed to fetch player stats", "details": "All proxies failed"}
 
-# ✅ Step 3: Default Route
+# ✅ Default Route
 @app.route("/")
 def home():
     return jsonify({"message": "NBA API is running!"})
 
-# ✅ Step 4: NBA Player Stats Route
+# ✅ NBA Player Stats Route
 @app.route("/player_stats")
 def get_nba_player_stats():
     nba_api_url = "https://stats.nba.com/stats/playergamelogs?Season=2023-24&SeasonType=Regular+Season"
     data = fetch_with_proxy(nba_api_url)
+
+    if "error" in data:
+        return jsonify(data), 500  # Return error response with HTTP 500
+
     return jsonify(data)
 
-# ✅ Step 5: Run Flask App
+# ✅ Run Flask App
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # Ensure PORT is dynamic for Render
     app.run(host="0.0.0.0", port=port)
