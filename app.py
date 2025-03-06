@@ -1,30 +1,23 @@
-from flask import Flask, jsonify, request
-from nba_api.stats.endpoints import playergamelogs
+from flask import Flask, jsonify
+import os
 
 app = Flask(__name__)
 
-# Home Route
-@app.route('/')
+# Default route to check if API is running
+@app.route("/")
 def home():
     return jsonify({"message": "NBA API is running!"})
 
-# Player Stats Route
-@app.route('/player_stats', methods=['GET'])
-def get_nba_player_stats():
-    player_name = request.args.get('player')
+# Example NBA player stats route (replace with actual API logic)
+@app.route("/player_stats")
+def get_player_stats():
+    return jsonify({
+        "player": "LeBron James",
+        "points": 30,
+        "assists": 8,
+        "rebounds": 10
+    })
 
-    if not player_name:
-        return jsonify({"error": "Please provide a player name"}), 400
-
-    try:
-        logs = playergamelogs.PlayerGameLogs(season_nullable='2023-24')
-        stats = logs.get_dict()
-        return jsonify(stats)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))  # Ensure PORT is dynamic for Render
+    app.run(host="0.0.0.0", port=port)
